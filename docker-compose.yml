@@ -1,0 +1,43 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crm_app
+    restart: unless-stopped
+    working_dir: /var/www
+    command: ["tail", "-f", "/dev/null"]
+    ports:
+      - "8000:8000" # Porta para a API REST
+      - "8080:8080" # Porta para o WebSocket (Laravel Reverb)
+    volumes:
+      - .:/var/www
+    networks:
+      - mini_crm
+
+  db:
+    image: mysql:8.0
+    container_name: crm_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: crm_database
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: root
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - mini_crm
+
+  redis:
+    image: redis:alpine
+    container_name: crm_redis
+    restart: unless-stopped
+    networks:
+      - mini_crm
+
+networks:
+  mini_crm:
+    driver: bridge
+
+volumes:
+  db_data:
