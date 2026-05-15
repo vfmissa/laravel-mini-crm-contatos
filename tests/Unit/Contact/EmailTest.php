@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Contact;
 
-use PHPUnit\Framework\TestCase; // Library class
+use PHPUnit\Framework\TestCase;
 use App\Domain\Contact\ValueObjects\Email;
 use InvalidArgumentException;
 
@@ -32,7 +32,6 @@ class EmailTest extends TestCase
         $corporateEmail = new Email('teste@empresa.com');
         $this->assertTrue($corporateEmail->isCorporate());
 
-        // E-mails públicos (devem retornar falso)
         $gmail = new Email('teste@gmail.com');
         $this->assertFalse($gmail->isCorporate());
 

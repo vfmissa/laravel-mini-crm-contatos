@@ -8,8 +8,7 @@ class Email
 {
     private string $address;
     
-    // Definimos os domínios públicos que não são considerados corporativos
-    private const PUBLIC_DOMAINS = ['gmail.com', 'hotmail.com', 'yahoo.com'];
+    private const PUBLIC_DOMAINS = ['@gmail.', '@hotmail.', '@yahoo.'];
 
     public function __construct(string $address)
     {
@@ -25,15 +24,18 @@ class Email
         return $this->address;
     }
 
-    // Verifica se a parte após o "@" NÃO está na lista de domínios públicos
     public function isCorporate(): bool
     {
-        $domain = explode('@', $this->address)[1];
-        
-        return !in_array($domain, self::PUBLIC_DOMAINS);
+        foreach (self::PUBLIC_DOMAINS as $publicDomain) {
+            
+            if (str_contains($this->address, $publicDomain)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    // Utiliza uma função nativa do PHP 8+ para verificar o final da string
     public function endsWithBr(): bool
     {
         return str_ends_with($this->address, '.br');
