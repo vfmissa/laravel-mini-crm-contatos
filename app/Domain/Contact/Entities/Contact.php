@@ -5,6 +5,10 @@ use App\Domain\Contact\Enums\ContactStatus;
 use App\Domain\Contact\Events\ContactScoreProcessed;
 use DateTimeImmutable;
 
+use App\Domain\Contact\ValueObjects\Nome;
+use App\Domain\Contact\ValueObjects\Email;
+use App\Domain\Contact\ValueObjects\Phone;
+
 class Contact
 {
     private string $id;
@@ -13,16 +17,24 @@ class Contact
     private ?DateTimeImmutable $processedAt = null;
     private array $domainEvents = [];
 
-    public function __construct(string $id)
+    private Nome $name;
+    private Email $email;
+    private Phone $phone;
+    private ?int $databaseId = null;
+
+    public function __construct(string $id, Nome $name, Email $email, Phone $phone)
     {
         $this->id = $id;
+        $this->name = $name;
+        $this->email = $email;
+        $this->phone = $phone;
         $this->status = ContactStatus::PENDING;
     }
 
-    public function getId(): string
-    {
-        return $this->id;
-    }
+    public function getId(): string {return $this->id; }
+    public function getName(): Nome { return $this->name; }
+    public function getEmail(): Email { return $this->email; }
+    public function getPhone(): Phone { return $this->phone; }
 
     public function markAsProcessing(): void
     {
@@ -62,5 +74,15 @@ class Contact
     public function getProcessedAt(): ?DateTimeImmutable
     {
         return $this->processedAt;
+    }
+    
+    public function getDatabaseId(): ?int
+    {
+        return $this->databaseId;
+    }
+
+    public function setDatabaseId(int $databaseId): void
+    {
+        $this->databaseId = $databaseId;
     }
 }
