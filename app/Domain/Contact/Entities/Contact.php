@@ -48,4 +48,19 @@ class Contact
         $this->domainEvents = [];
         return $events;
     }
+
+    public function getStatus(): ContactStatus
+    {
+        return $this->status;
+    }
+
+    public function getScore(): ?int
+    {
+        return $this->score;
+    }
+
+    public function getProcessedAt(): ?DateTimeImmutable
+    {
+        return $this->processedAt;
+    }
 }
