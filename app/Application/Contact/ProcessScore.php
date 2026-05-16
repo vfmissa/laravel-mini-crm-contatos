@@ -28,25 +28,28 @@ class ProcessScore
         $this->dispatcher = $dispatcher;
     }
 
-
-    public function execute(Contact $contact, string $rawName, string $rawEmail, string $rawPhone): void
+    public function execute(Contact $contact): void
     {
         $contact->markAsProcessing();
         $this->repository->save($contact); 
+        sleep(2); 
 
         try {
-            $name = new Nome($rawName);
-            $email = new Email($rawEmail);
-            $phone = new Phone($rawPhone);
-
-            $score = $this->calculator->calculate($name, $email, $phone);
+        
+            $score = $this->calculator->calculate(
+                $contact->getName(), 
+                $contact->getEmail(), 
+                $contact->getPhone()
+            );
+            
             $contact->approveScore($score);
 
-        } catch (Throwable $exception) {
+        } catch (\Throwable $exception) {
             $contact->failProcess();
-           // throw $exception;
+            // throw $exception;
             
         } finally {
+            
             $this->repository->save($contact);
             
             foreach ($contact->pullDomainEvents() as $event) {
