@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <title>Teste Isolado - POST, PUT, DELETE e WebSocket</title>
+        <script src="https://js.pusher.com/8.0.1/pusher.min.js"></script>
+        <script
+            src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.3/dist/echo.iife.js"></script>
+    </head>
+    <body>
+
+        <h1>Painel de Testes da API de Contatos</h1>
+        <hr>
+
+        <!-- ROTA: POST (Criação e Score) -->
+        <fieldset>
+            <legend><strong>Rotas: POST /api/contacts & POST
+                    /api/contacts/{id}/process-score</strong></legend>
+            <h3>1. Cadastrar Novo Contato</h3>
+            <form id="contact-form">
+                <label>Nome: <input type="text" id="name"
+                        required></label><br><br>
+                <label>E-mail: <input type="email" id="email"
+                        required></label><br><br>
+                <label>Telefone: <input type="text" id="phone"
+                        required></label><br><br>
+                <button type="submit">Enviar Contato (POST)</button>
+            </form>
+        </fieldset>
+        <br>
+
+        <!-- ROTA: GET (Listagem) -->
+        <fieldset>
+            <legend><strong>Rota: GET /api/contacts</strong></legend>
+            <h3>2. Lista de Contatos</h3>
+            <button id="btn-load-contacts">Carregar Lista</button>
+            <br>
+
+            <ul id="contacts-list"></ul>
+
+            <div id="pagination-info"></div><br>
+            <button type="button" id="btn-prev">Anterior</button>
+            <button type="button" id="btn-next">Próxima</button>
+        </fieldset>
+        <br>
+
+        <!-- ROTA: GET ESPECÍFICO (Busca) -->
+        <fieldset>
+            <legend><strong>Rota: GET /api/contacts/{id}</strong></legend>
+            <h3>3. Buscar Contato Específico</h3>
+            <input type="text" id="input-search-id"
+                placeholder="Digite o ID numérico">
+            <button type="button" id="btn-search-contact">Buscar
+                Contato</button>
+
+            <br><br>
+            <div id="single-contact-result">
+                Aguardando busca...
+            </div>
+        </fieldset>
+        <br>
+
+        <!-- ROTA: PUT (Atualização) -->
+        <fieldset>
+            <legend><strong>Rota: PUT /api/contacts/{id}</strong></legend>
+            <h3>4. Atualizar Contato</h3>
+            <form id="update-contact-form">
+                <label>ID do Contato: <input type="text" id="update-id"
+                        required></label><br><br>
+                <label>Nome: <input type="text" id="update-name"
+                        required></label><br><br>
+                <label>E-mail: <input type="email" id="update-email"
+                        required></label><br><br>
+                <label>Telefone: <input type="text" id="update-phone"
+                        required></label><br><br>
+                <button type="button" id="btn-update-contact">Atualizar Contato
+                    (PUT)</button>
+            </form>
+        </fieldset>
+        <br>
+
+        <!-- ROTA: DELETE (Exclusão) -->
+        <fieldset>
+            <legend><strong>Rota: DELETE /api/contacts/{id}</strong></legend>
+            <h3>5. Excluir Contato</h3>
+            <form id="delete-contact-form">
+                <label>ID do Contato: <input type="text" id="delete-id"
+                        required></label><br><br>
+                <button type="button" id="btn-delete-contact">Excluir Contato
+                    (DELETE)</button>
+            </form>
+        </fieldset>
+        <br>
+
+        <!-- WEBSOCKETS E LOGS -->
+        <fieldset>
+            <legend><strong>Monitoramento: WebSockets e Logs</strong></legend>
+            <h3>StackTrace dos eventos:</h3>
+            <pre id="log"></pre>
+        </fieldset>
+
+        <script>
+        const API_URL = '/api/contacts';
+        let currentPage = 1;
+        const logElement = document.getElementById('log');
+
+        function addLog(message) {
+            logElement.innerText += `\n[${new Date().toLocaleTimeString()}] ${message}`;
+        }
+
+        function subscribeToContactChannel(contactId) {
+            if (window.currentContactChannel) {
+                window.Echo.leave(window.currentContactChannel);
+            }
+
+            window.currentContactChannel = `contacts.${contactId}`;
+            addLog(`Inscrito no websocket: ${window.currentContactChannel}`);
+
+            window.Echo.channel(window.currentContactChannel)
+                .listen('.ContactScoreProcessed', (data) => {
+                    addLog(`Processamento concluído para ID ${data.contactId}! Score: ${data.score} | Status: ${data.status}`);
+                    
+                    const resultDiv = document.getElementById('single-contact-result');
+                    if (resultDiv && resultDiv.innerHTML.includes(`ID:</strong> ${data.contactId}`)) {
+                        resultDiv.innerHTML = resultDiv.innerHTML.replace(
+                            /<strong>Score:<\/strong> (.*)/, 
+                            `<strong>Score:</strong> ${data.score} (Atualizado via WebSocket)`
+                        );
+                    }
+                });
+        }
+
+        async function loadContacts() {
+            try {
+                addLog("Buscando lista de contatos...");
+                
+                const response = await fetch(`${API_URL}?page=${currentPage}`);
+                const result = await response.json();
+
+                const listElement = document.getElementById('contacts-list');
+                const paginationElement = document.getElementById('pagination-info');
+                
+                listElement.innerHTML = '';
+
+                result.data.forEach(contact => {
+                    const li = document.createElement('li');
+                    li.innerText = `ID: ${contact.id} | Nome: ${contact.name} | E-mail: ${contact.email} | Status: ${contact.status} | Score: ${contact.score ?? 'Processando...'}`;
+                    listElement.appendChild(li);
+                });
+
+                paginationElement.innerText = `Página ${result.meta.current_page} de ${result.meta.last_page} (Total: ${result.meta.total})`;
+                
+                const currentBtnPrev = document.getElementById('btn-prev');
+                const currentBtnNext = document.getElementById('btn-next');
+
+                if (currentBtnPrev && currentBtnNext) {
+                    currentBtnPrev.disabled = (result.meta.current_page <= 1);
+                    currentBtnNext.disabled = (result.meta.current_page >= result.meta.last_page);
+                }
+
+                addLog("Contatos listados com sucesso!");
+            } catch (error) {
+                addLog("Erro ao buscar contatos: " + error.message);
+            }
+        }
+
+        async function getSingleContact() {
+            const inputId = document.getElementById('input-search-id').value;
+            const resultDiv = document.getElementById('single-contact-result');
+
+            if (!inputId) {
+                resultDiv.innerText = "Por favor, digite um ID antes de buscar.";
+                return;
+            }
+
+            try {
+                addLog(`Buscando detalhes do ID: ${inputId}...`);
+                resultDiv.innerText = "Buscando...";
+
+                const response = await fetch(`${API_URL}/${inputId}`);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "Contato não encontrado.");
+                }
+
+                const jsonResponse = await response.json();
+                const contact = jsonResponse.data;
+
+                resultDiv.innerHTML = `
+                    <strong>ID:</strong> ${contact.id} <br>
+                    <strong>Nome:</strong> ${contact.name} <br>
+                    <strong>E-mail:</strong> ${contact.email} <br>
+                    <strong>Telefone:</strong> ${contact.phone} <br>
+                    <strong>Status:</strong> ${contact.status} <br>
+                    <strong>Score:</strong> ${contact.score ?? 'Processando...'}
+                `;
+                
+                // Preenche os formulários de Update e Delete automaticamente
+                document.getElementById('update-id').value = contact.id;
+                document.getElementById('update-name').value = contact.name;
+                document.getElementById('update-email').value = contact.email;
+                document.getElementById('update-phone').value = contact.phone;
+                
+                document.getElementById('delete-id').value = contact.id;
+
+                addLog(`Contato ${inputId} encontrado com sucesso!`);
+                subscribeToContactChannel(contact.id);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `Erro: ${error.message}`;
+                addLog(`Erro ao buscar: ${error.message}`);
+            }
+        }
+
+        async function updateContact() {
+            const id = document.getElementById('update-id').value;
+            const name = document.getElementById('update-name').value;
+            const email = document.getElementById('update-email').value;
+            const phone = document.getElementById('update-phone').value;
+
+            if (!id) {
+                addLog("Erro: ID obrigatório para atualização.");
+                return;
+            }
+
+            try {
+                addLog(`Atualizando ID: ${id}...`);
+
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ name, email, phone })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || JSON.stringify(result.errors));
+                }
+
+                addLog(`Sucesso: Contato ID ${id} atualizado.`);
+                loadContacts();
+
+            } catch (error) {
+                addLog(`Erro ao atualizar: ${error.message}`);
+            }
+        }
+
+        async function deleteContact() {
+            const id = document.getElementById('delete-id').value;
+
+            if (!id) {
+                addLog("Erro: ID obrigatório para exclusão.");
+                return;
+            }
+
+            try {
+                addLog(`Excluindo ID: ${id}...`);
+
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || "Erro desconhecido.");
+                }
+
+                addLog(`Sucesso: Contato ID ${id} excluído.`);
+                document.getElementById('update-contact-form').reset();
+                document.getElementById('delete-contact-form').reset();
+                document.getElementById('single-contact-result').innerText = "Aguardando busca...";
+                loadContacts();
+
+            } catch (error) {
+                addLog(`Erro ao excluir: ${error.message}`);
+            }
+        }
+        
+        function initializeApp() {
+            try {
+                if (typeof Pusher !== 'undefined') {
+                    window.Pusher = Pusher;
+                } else {
+                    throw new Error("Pusher (CDN) não encontrado.");
+                }
+
+                if (typeof Echo === 'undefined') {
+                    throw new Error("Laravel Echo (CDN) não encontrado.");
+                }
+
+                Pusher.logToConsole = true;
+
+                window.Echo = new Echo({
+                    broadcaster: 'pusher',
+                    key: 'eozwdsbokucs6grixjsb',
+                    cluster: 'mt1',
+                    wsHost: '127.0.0.1',
+                    wsPort: 8080,
+                    forceTLS: false,
+                    disableStats: true,
+                    enabledTransports: ['ws', 'wss']
+                });
+
+                const form = document.getElementById('contact-form');
+                if (form) {
+                    form.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        
+                        const name = document.getElementById('name').value;
+                        const email = document.getElementById('email').value;
+                        const phone = document.getElementById('phone').value;
+
+                        try {
+                            const response = await fetch(API_URL, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({ name, email, phone })
+                            });
+
+                            const result = await response.json();
+                            
+                            if (response.status === 422) {
+                                addLog("Erro de Validação: " + JSON.stringify(result.errors));
+                                return;
+                            }
+
+                            addLog(`Contato salvo com ID ${result.data.id}. Status: ${result.data.status}`);
+                            form.reset();
+                            
+                            subscribeToContactChannel(result.data.id);
+
+                            try {
+                                addLog(`Acionando Job de score para o ID ${result.data.id}...`);
+                                
+                                const scoreResponse = await fetch(`${API_URL}/${result.data.id}/process-score`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Accept': 'application/json'
+                                    }
+                                });
+
+                                if (scoreResponse.status === 202) {
+                                    addLog("Processamento aceito pela fila!");
+                                }
+                            } catch (scoreError) {
+                                addLog("Erro na fila: " + scoreError.message);
+                            }
+
+                        } catch (error) {
+                            addLog("Erro crítico: " + error.message);
+                        }
+                    });
+                }
+                
+                const btnLoad = document.getElementById('btn-load-contacts');
+                if (btnLoad) btnLoad.addEventListener('click', loadContacts);
+             
+                const btnPrev = document.getElementById('btn-prev');
+                if (btnPrev) btnPrev.onclick = () => { if (currentPage > 1) { currentPage--; loadContacts(); } };
+
+                const btnNext = document.getElementById('btn-next');
+                if (btnNext) btnNext.onclick = () => { currentPage++; loadContacts(); };
+
+                const btnSearch = document.getElementById('btn-search-contact');
+                if (btnSearch) btnSearch.onclick = getSingleContact;
+
+                const btnUpdate = document.getElementById('btn-update-contact');
+                if (btnUpdate) btnUpdate.onclick = updateContact;
+
+                const btnDelete = document.getElementById('btn-delete-contact');
+                if (btnDelete) btnDelete.onclick = deleteContact;
+
+            } catch (error) {
+                addLog("LOG: " + (error.message || String(error)));
+            }
+        }
+
+        window.onload = initializeApp;
+        </script>
+    </body>
+</html>
