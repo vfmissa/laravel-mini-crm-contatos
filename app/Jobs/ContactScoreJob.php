@@ -23,6 +23,7 @@ class ContactScoreJob implements ShouldQueue
 
     private int $contactDatabaseId;
 
+
     public function __construct(int $contactDatabaseId)
     {
         $this->contactDatabaseId = $contactDatabaseId;
@@ -31,7 +32,7 @@ class ContactScoreJob implements ShouldQueue
     public function handle(ContactRepositoryInterface $repository): void
     {
         try {
-             $contactModel = ContactModel::find($this->contactDatabaseId);
+            $contactModel = ContactModel::find($this->contactDatabaseId);
 
             if (!$contactModel) {
                 return; 
@@ -54,13 +55,18 @@ class ContactScoreJob implements ShouldQueue
                 'processed_at' => now(),
             ]);
 
-        event(new ContactScoreEvent($contactModel->id, $score, 'active'));
+          
+            Log::info("Job: Preparando para disparar o WebSocket do contato {$contactModel->id}");
+
+            event(new ContactScoreEvent((string) $contactModel->id,$score,'active'));
+
+            Log::info("Job: Evento de WebSocket disparado com sucesso no backend!");
             
         } catch (\Throwable $exception) {
                         
             Log::error("Erro no Job: " . $exception->getMessage());
             
-            $contact = $repository->findById($this->databaseId); 
+            $contact = $repository->findById($this->contactDatabaseId); 
             
             if ($contact) {
                 $contact->failProcess();

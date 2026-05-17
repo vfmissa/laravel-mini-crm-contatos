@@ -10,6 +10,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
+
 class ContactScoreEvent implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
@@ -18,9 +19,6 @@ class ContactScoreEvent implements ShouldBroadcast
     public int $score;
     public string $status;
 
-    /**
-     * Create a new event instance.
-     */
     public function __construct(int $contactId, int $score, string $status)
     {
         $this->contactId = $contactId;
@@ -28,20 +26,23 @@ class ContactScoreEvent implements ShouldBroadcast
         $this->status = $status;
     }
 
-    /**
-     * Get the channels the event should broadcast on.
-     *
-     * @return array<int, Channel>
-     */
-    public function broadcastOn(): array
+
+    public function broadcastOn(): Channel
     {
-        return [
-            new Channel('contacts'),
-        ];
+        return new Channel('contacts.' . $this->contactId);
     }
-    
+
     public function broadcastAs(): string
     {
-        return 'score.updated';
+        return 'ContactScoreProcessed';
+    }
+
+    public function broadcastWith(): array
+    {
+        return [
+            'contactId' => $this->contactId,
+            'score'     => $this->score,
+            'status'    => 'PROCESSED'
+        ];
     }
 }
