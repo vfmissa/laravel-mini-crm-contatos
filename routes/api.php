@@ -12,6 +12,7 @@ Route::get('/user', function (Request $request) {
 
 
 Route::post('/contacts', [ContactController::class, 'store']);
+Route::post('/contacts/{id}/process-score', [ContactController::class, 'processScore']);
 Route::get('/contacts', [ContactController::class, 'index']);
 Route::get('/contacts/{id}', [ContactController::class, 'show']);
 Route::put('/contacts/{id}', [ContactController::class, 'update']);

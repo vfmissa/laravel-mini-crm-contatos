@@ -38,9 +38,11 @@ class ContactScoreJob implements ShouldQueue
                 return; 
             }
 
+            $contactModel->update(['status' => 'processing']);
+            
             //simula request/Work
             sleep(2);
-
+            
             $calculator = app(ScoreCalculator::class); 
 
             $nomeObj  = new Nome($contactModel->name);
@@ -58,7 +60,7 @@ class ContactScoreJob implements ShouldQueue
           
             Log::info("Job: Preparando para disparar o WebSocket do contato {$contactModel->id}");
 
-            event(new ContactScoreEvent((string) $contactModel->id,$score,'active'));
+            event(new ContactScoreEvent($contactModel->id, $score, 'active'));
 
             Log::info("Job: Evento de WebSocket disparado com sucesso no backend!");
             

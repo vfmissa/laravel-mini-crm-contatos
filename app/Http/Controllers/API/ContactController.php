@@ -19,14 +19,13 @@ use App\Application\Contact\GetContacts;
 use App\Application\Contact\GetContactbyID;
 use App\Application\Contact\PutContactbyID;
 
-
 class ContactController extends Controller
 {
-    private ProcessScore $useCase;
+    private ContactRepositoryInterface $repository;
 
-    public function __construct(ProcessScore $useCase)
+    public function __construct(ContactRepositoryInterface $repository)
     {
-        $this->useCase = $useCase;
+        $this->repository = $repository;
     }
 
     public function store(StoreContactRequest $request)
@@ -37,14 +36,30 @@ class ContactController extends Controller
 
         $contact = new Contact((string) Str::uuid(), $name, $email, $phone);
 
-        $this->useCase->execute($contact);
+        $this->repository->save($contact);
 
         return new ContactResource($contact);
     }
 
+    public function processScore(string $id, ProcessScore $useCase)
+    {
+        try {
+        
+            $useCase->execute((int) $id);
+
+            return response()->json([
+                'message' => 'Score em processamento'
+            ], 202); 
+
+        } catch (\Exception $exception) {
+            return response()->json([
+                'error' => $exception->getMessage()
+            ], 404);
+        }
+    }
+
     public function index(GetContacts $useCase)
     {
-        
         $perPage = request('per_page', 3);        
         $contacts = $useCase->execute($perPage);
 
@@ -54,10 +69,8 @@ class ContactController extends Controller
     public function show(string $id, GetContactbyID $useCase)
     {
         try {
-            
             $contact = $useCase->execute($id);
             return new ContactResource($contact);
-            
         } catch (\Exception $exception) {
             return response()->json([
                 'error' => $exception->getMessage()
@@ -68,7 +81,6 @@ class ContactController extends Controller
     public function update(string $id, Request $request, PutContactbyID $useCase)
     {
         try {
-            
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|email',
@@ -78,42 +90,23 @@ class ContactController extends Controller
             $useCase->execute($id, $validated);
 
             return response()->json(['message' => 'Contato atualizado com sucesso!']);
-        }catch (QueryException $e) {
+        } catch (QueryException $e) {
             if ($e->getCode() == 23000) {
                 return response()->json([
                     'error' => 'e-mail duplicado'
                 ], 422);
             }
-            
             return response()->json(['error' => 'Erro interno no banco de dados.'], 500);
-
         }
     }
 
     public function delete(string $id, ContactRepositoryInterface $repository)
     {
         try {
-            
             $repository->deleteById($id);
-            
             return response()->json(['message' => 'Contato removido com sucesso!']);
-
         } catch (\Exception $exception) {
             return response()->json(['error' => $exception->getMessage()], 500);
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
