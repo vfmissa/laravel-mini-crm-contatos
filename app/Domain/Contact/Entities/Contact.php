@@ -70,6 +70,14 @@ class Contact
         $this->domainEvents[] = new ContactScoreProcessed($this->id, $this->score);
     }
 
+
+    public function updateDetails(Nome $nome, Email $email, Phone $phone): void
+    {
+        $this->name = $nome;
+        $this->email = $email;
+        $this->phone = $phone;
+    }
+
     public function pullDomainEvents(): array
     {
         $events = $this->domainEvents;

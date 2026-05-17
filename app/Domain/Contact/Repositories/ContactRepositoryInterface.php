@@ -11,4 +11,6 @@ interface ContactRepositoryInterface
     public function save(Contact $contact): void;
 
     public function paginate(int $perPage = 5);
+
+    public function deleteById(string $id): void;
 }

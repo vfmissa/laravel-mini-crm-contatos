@@ -13,27 +13,25 @@ class ContactRepository implements ContactRepositoryInterface
 {
     public function save(ContactEntity $contact): void
     {
-        
-        if ($contact->getDatabaseId() === null) {
-            
-            $model = ContactModel::create([
-                'name'         => $contact->getName()->getValue(),
-                'email'        => $contact->getEmail()->getValue(),
-                'phone'        => $contact->getPhone()->getValue(),
-                'status'       => $contact->getStatus(),
-                'score'        => $contact->getScore() ?? 0,
-                'processed_at' => $contact->getProcessedAt(),
-            ]);
 
+        \Illuminate\Support\Facades\Log::info('Repository Save: Validando Database ID', ['db_id' => $contact->getDatabaseId()]);
+
+        $data = [
+            'name'         => $contact->getName()->getValue(), 
+            'email'        => $contact->getEmail()->getValue(), 
+            'phone'        => $contact->getPhone()->getValue(), 
+            'status'       => $contact->getStatus(),
+            'score'        => $contact->getScore() ?? 0,
+            'processed_at' => $contact->getProcessedAt(),
+        ];
+
+        if ($contact->getDatabaseId() === null) {
+
+            $model = ContactModel::create($data);
             $contact->setDatabaseId($model->id);
             
         } else {
-            
-            ContactModel::where('id', $contact->getDatabaseId())->update([
-                'status'       => $contact->getStatus(),
-                'score'        => $contact->getScore() ?? 0,
-                'processed_at' => $contact->getProcessedAt(),
-            ]);
+            ContactModel::where('id', $contact->getDatabaseId())->update($data);
             
         }
     }
@@ -52,14 +50,17 @@ class ContactRepository implements ContactRepositoryInterface
 
     private function toDomain(ContactModel $model): ContactEntity
     {
-        return new ContactEntity(
-            $model->id,
+        $contactdata = new ContactEntity(
+            $model->id, 
             new Nome($model->name), 
             new Email($model->email), 
             new Phone($model->phone),
             $model->status,
             $model->score
         );
+
+        $contactdata->setDatabaseId($model->id);
+        return $contactdata;
     }
 
     public function findById(string $id): ?ContactEntity
@@ -69,5 +70,14 @@ class ContactRepository implements ContactRepositoryInterface
             return null;
         }
         return $this->toDomain($model);
+    }
+
+    public function deleteById(string $id): void
+    {
+        $model = ContactModel::find($id);
+        
+        if ($model) {
+            $model->delete();
+        }
     }
 }

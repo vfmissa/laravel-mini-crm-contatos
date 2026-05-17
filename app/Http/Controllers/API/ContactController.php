@@ -11,9 +11,13 @@ use App\Domain\Contact\ValueObjects\Phone;
 use Illuminate\Support\Str;
 use App\Http\Requests\StoreContactRequest;
 use App\Http\Resources\ContactResource; 
+use Illuminate\Http\Request;
+use App\Domain\Contact\Repositories\ContactRepositoryInterface;
+use Illuminate\Database\QueryException;
 
 use App\Application\Contact\GetContacts;
 use App\Application\Contact\GetContactbyID;
+use App\Application\Contact\PutContactbyID;
 
 
 class ContactController extends Controller
@@ -41,7 +45,7 @@ class ContactController extends Controller
     public function index(GetContacts $useCase)
     {
         
-        $perPage = request('per_page', 2);        
+        $perPage = request('per_page', 3);        
         $contacts = $useCase->execute($perPage);
 
         return ContactResource::collection($contacts);
@@ -60,4 +64,56 @@ class ContactController extends Controller
             ], 404);
         }
     }
+
+    public function update(string $id, Request $request, PutContactbyID $useCase)
+    {
+        try {
+            
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email',
+                'phone' => 'required|string',
+            ]);
+
+            $useCase->execute($id, $validated);
+
+            return response()->json(['message' => 'Contato atualizado com sucesso!']);
+        }catch (QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return response()->json([
+                    'error' => 'e-mail duplicado'
+                ], 422);
+            }
+            
+            return response()->json(['error' => 'Erro interno no banco de dados.'], 500);
+
+        }
+    }
+
+    public function delete(string $id, ContactRepositoryInterface $repository)
+    {
+        try {
+            
+            $repository->deleteById($id);
+            
+            return response()->json(['message' => 'Contato removido com sucesso!']);
+
+        } catch (\Exception $exception) {
+            return response()->json(['error' => $exception->getMessage()], 500);
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
