@@ -7,7 +7,6 @@
 * **Docker Compose** (Infraestrutura isolada)
 
 ---
-
 ## ⚙️ Como Subir o Ambiente (Setup Automático)
 
 Para facilitar a avaliação, todo o ambiente foi containerizado e scripts de automação foram criados. Você não precisa configurar o banco de dados manualmente ou rodar os *workers* em abas separadas.
@@ -20,7 +19,7 @@ Para facilitar a avaliação, todo o ambiente foi containerizado e scripts de au
 
 1. **Clone o repositório e acesse a pasta:**
    ```bash
-   git clone <URL_DO_SEU_REPOSITORIO>
+   git clone
    cd laravel-mini-crm-contatos
 
 2.**Configure o arquivo de ambiente:**
@@ -29,7 +28,6 @@ Bash
 **cp .env.example .env**
 
   
-
 3. **Inicie os Containers e a Aplicação:**
    Utilize o script de inicialização correspondente ao seu sistema operacional. Ele subirá os containers, aguardará o banco de dados, rodará as *migrations* e limpará os caches automaticamente.
 
@@ -39,9 +37,7 @@ Bash
    ./start.sh
 
    **No Windowns**
-   Dê um duplo clique no arquivo start.bat ou rode no terminal:
-   DOS
-   start.bat
+   Execute o start.bat ou rode no terminal:
 
 **Após a execução, os seguintes serviços estarão disponíveis:**
 
@@ -51,10 +47,10 @@ Bash
 
  ### http://127.0.0.1:8000/example.html
 
-   Interface de Teste (Frontend): Acesse http://127.0.0.1:8000/example.html diretamente no seu navegador para utilizar o simulador visual e testar os endpoints e a fila em tempo real.
+   Interface de Teste Acesse http://127.0.0.1:8000/example.html diretamente no seu navegador para ver uma execução em tela com alguns logs
 
 **Como Executar os Testes**
-Para rodar os testes sem interferir no banco de dados principal (utilizando SQLite em memória via .env.testing), basta executar o comando automatizado na raiz do projeto:
+Para rodar os testes basta executar um docker compose exec -T app php artisan test se quiser ver os testes unitarios
 
 No Linux / macOS:
 Bash
