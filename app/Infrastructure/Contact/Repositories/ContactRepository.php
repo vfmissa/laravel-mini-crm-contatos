@@ -5,6 +5,9 @@ namespace App\Infrastructure\Contact\Repositories;
 use App\Domain\Contact\Repositories\ContactRepositoryInterface;
 use App\Domain\Contact\Entities\Contact as ContactEntity;
 use App\Models\Contact as ContactModel;
+use App\Domain\Contact\ValueObjects\Nome;
+use App\Domain\Contact\ValueObjects\Email;
+use App\Domain\Contact\ValueObjects\Phone;
 
 class ContactRepository implements ContactRepositoryInterface
 {
@@ -33,5 +36,38 @@ class ContactRepository implements ContactRepositoryInterface
             ]);
             
         }
+    }
+
+    public function paginate(int $perPage = 5)
+    {
+        $paginator = ContactModel::paginate($perPage);
+
+        $paginator->getCollection()->transform(function ($model) {
+           
+            return $this->toDomain($model); 
+        });
+
+        return $paginator;
+    }
+
+    private function toDomain(ContactModel $model): ContactEntity
+    {
+        return new ContactEntity(
+            $model->id,
+            new Nome($model->name), 
+            new Email($model->email), 
+            new Phone($model->phone),
+            $model->status,
+            $model->score
+        );
+    }
+
+    public function findById(string $id): ?ContactEntity
+    {
+        $model = ContactModel::find($id);
+        if (!$model) {
+            return null;
+        }
+        return $this->toDomain($model);
     }
 }
