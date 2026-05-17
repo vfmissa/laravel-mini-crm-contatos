@@ -22,14 +22,30 @@ class Contact
     private Phone $phone;
     private ?int $databaseId = null;
 
-    public function __construct(string $id, Nome $name, Email $email, Phone $phone)
-    {
+    public function __construct(
+        string $id, 
+        Nome $name, 
+        Email $email, 
+        Phone $phone, 
+        ContactStatus $status = null, 
+        int $score = null,
+        int $databaseId = null
+    ) {
         $this->id = $id;
         $this->name = $name;
         $this->email = $email;
         $this->phone = $phone;
-        $this->status = ContactStatus::PENDING;
+        
+        if ($status === null) {
+            $this->status = ContactStatus::PENDING;
+        } else {
+            $this->status = $status;
+        }
+        
+        $this->score = $score;
+        $this->databaseId = $databaseId;
     }
+    
 
     public function getId(): string {return $this->id; }
     public function getName(): Nome { return $this->name; }
@@ -85,4 +101,5 @@ class Contact
     {
         $this->databaseId = $databaseId;
     }
+
 }
