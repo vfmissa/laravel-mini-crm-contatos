@@ -52,6 +52,12 @@ return [
 
     'channels' => [
 
+        'contact' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/contact.log'),
+            'level' => env('LOG_LEVEL', 'info'),
+        ],
+
         'stack' => [
             'driver' => 'stack',
             'channels' => explode(',', (string) env('LOG_STACK', 'single')),
