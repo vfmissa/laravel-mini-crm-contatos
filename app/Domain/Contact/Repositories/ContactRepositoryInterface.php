@@ -12,5 +12,7 @@ interface ContactRepositoryInterface
 
     public function paginate(int $perPage = 5);
 
+    public function findById(int $id): ?Contact;
+
     public function deleteById(string $id): void;
 }

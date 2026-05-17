@@ -63,7 +63,7 @@ class ContactRepository implements ContactRepositoryInterface
         return $contactdata;
     }
 
-    public function findById(string $id): ?ContactEntity
+    public function findById(int $id): ?ContactEntity
     {
         $model = ContactModel::find($id);
         if (!$model) {
