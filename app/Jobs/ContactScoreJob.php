@@ -7,15 +7,11 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use App\Models\Contact as ContactModel;
-use App\Events\ContactScoreEvent;
 use Illuminate\Support\Facades\Log;
-
+use App\Events\ContactScoreEvent;
 use App\Domain\Contact\Services\ScoreCalculator;
-use App\Domain\Contact\ValueObjects\Nome;
-use App\Domain\Contact\ValueObjects\Email;
-use App\Domain\Contact\ValueObjects\Phone;
 use App\Domain\Contact\Repositories\ContactRepositoryInterface;
+use App\Domain\Contact\Events\EventDispatcherInterface;
 
 class ContactScoreJob implements ShouldQueue
 {
@@ -23,56 +19,55 @@ class ContactScoreJob implements ShouldQueue
 
     private int $contactDatabaseId;
 
-
+    /**
+     * Create a new job instance.
+     */
     public function __construct(int $contactDatabaseId)
     {
         $this->contactDatabaseId = $contactDatabaseId;
     }
 
-    public function handle(ContactRepositoryInterface $repository): void
+    /**
+     * Execute the job.
+     */
+    public function handle(ContactRepositoryInterface $repository,ScoreCalculator $calculator,EventDispatcherInterface $dispatcher): void 
     {
-        try {
-            $contactModel = ContactModel::find($this->contactDatabaseId);
 
-            if (!$contactModel) {
-                return; 
+        $contact = null;
+
+        try {
+            $contact = $repository->findById($this->contactDatabaseId);
+
+            if (!$contact) {
+                Log::warning("Job: Contato {$this->contactDatabaseId} nao foi encontrado no banco.");
+                return;
             }
 
-            $contactModel->update(['status' => 'processing']);
-            
-            //simula request/Work
             sleep(2);
             
-            $calculator = app(ScoreCalculator::class); 
-
-            $nomeObj  = new Nome($contactModel->name);
-            $emailObj = new Email($contactModel->email);
-            $phoneObj = new Phone($contactModel->phone);
-
+            $nomeObj  = $contact->getName();
+            $emailObj = $contact->getEmail(); 
+            $phoneObj = $contact->getPhone(); 
             $score = $calculator->calculate($nomeObj, $emailObj, $phoneObj);
 
-            $contactModel->update([
-                'score'  => $score,
-                'status' => 'active', 
-                'processed_at' => now(),
-            ]);
+            $repository->save($contact);
 
-          
-            Log::info("Job: Preparando para disparar o WebSocket do contato {$contactModel->id}");
+            $event = new ContactScoreEvent($this->contactDatabaseId, $score, 'active');
 
-            event(new ContactScoreEvent($contactModel->id, $score, 'active'));
+            $dispatcher->dispatch($event);
 
-            Log::info("Job: Evento de WebSocket disparado com sucesso no backend!");
+            Log::info("Job: Evento disparado com sucesso para o contato {$this->contactDatabaseId}!");
             
         } catch (\Throwable $exception) {
-                        
             Log::error("Erro no Job: " . $exception->getMessage());
-            
-            $contact = $repository->findById($this->contactDatabaseId); 
             
             if ($contact) {
                 $contact->failProcess();
                 $repository->save($contact);
+            }
+
+            if (app()->environment() === 'testing') {
+                throw $exception;
             }
         }
     }

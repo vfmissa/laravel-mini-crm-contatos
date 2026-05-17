@@ -9,11 +9,13 @@ services:
     command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
     ports:
       - "8000:8000" # Porta para a API REST
-      - "8080:8080" # Porta para o WebSocket (Laravel Reverb)
     volumes:
       - .:/var/www
     networks:
       - mini_crm
+    depends_on: # ADICIONE ESTAS 3 LINHAS
+      - db
+      - redis
 
   db:
     image: mysql:8.0
@@ -34,6 +36,38 @@ services:
     restart: unless-stopped
     networks:
       - mini_crm
+  queue:
+      build:
+        context: .
+        dockerfile: Dockerfile
+      container_name: crm_queue
+      restart: unless-stopped
+      working_dir: /var/www
+      command: ["php", "artisan", "queue:work", "--tries=3"]
+      volumes:
+        - .:/var/www
+      networks:
+        - mini_crm
+      depends_on:
+        - db
+        - redis
+
+  reverb:
+      build:
+        context: .
+        dockerfile: Dockerfile
+      container_name: crm_reverb
+      restart: unless-stopped
+      working_dir: /var/www
+      command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+      ports:
+        - "8080:8080" # A porta do WebSocket agora vive aqui
+      volumes:
+        - .:/var/www
+      networks:
+        - mini_crm
+      depends_on:
+        - redis
 
 networks:
   mini_crm:
