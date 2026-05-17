@@ -10,12 +10,12 @@ class Phone
 
     public function __construct(string $number)
     {
-
-        if (!preg_match('/^[0-9]{10,11}$/', $number)) {
+        $cleanedNumber = preg_replace('/[^0-9]/', '', $number);
+        if (!preg_match('/^[0-9]{10,11}$/', $cleanedNumber)) {
             throw new InvalidArgumentException('O formato do telefone é inválido.');
         }
 
-        $this->number = $number;
+        $this->number = $cleanedNumber;
     }
 
     public function getValue(): string
