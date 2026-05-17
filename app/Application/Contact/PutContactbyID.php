@@ -25,15 +25,11 @@ class PutContactbyID
       if (!$contact) {
           throw new Exception("Contato não encontrado para atualização.");
       }
-
-        Log::info('UpdateContact: Database ID resgatado', ['db_id' => $contact->getDatabaseId()]);
-      
       $contact->updateDetails(
           new Nome($data['name']),
           new Email($data['email']),
           new Phone($data['phone'])
       );
-      
       $this->repository->save($contact);
 
     }
