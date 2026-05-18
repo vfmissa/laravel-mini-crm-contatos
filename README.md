@@ -9,35 +9,35 @@
 ---
 ## ⚙️ Como Subir o Ambiente (Setup Automático)
 
-Para facilitar a avaliação, todo o ambiente foi containerizado e scripts de automação foram criados. Você não precisa configurar o banco de dados manualmente ou rodar os *workers* em abas separadas.
-
 ### Pré-requisitos
 * Docker e Docker Compose instalados na máquina.
 * Git para clonar o repositório.
 
 ### Passo a Passo
 
-1. **Clone o repositório e acesse a pasta:**
-   ```bash
-   git clone
-   cd laravel-mini-crm-contatos
+# 1. Baixar o código do repositório na pasta do projeto
+git clone url-do-seu-repositorio-aqui
 
-2.**Configure o arquivo de ambiente:**
-Copie o arquivo de exemplo para criar o seu .env local. (com as chaves para test já no arquivo)
-Bash
-**cp .env.example .env**
+# 2. Criar o arquivo de variáveis de ambiente a partir do exemplo
+cp .env.example .env
 
-  
-3. **Inicie os Containers e a Aplicação:**
-   Utilize o script de inicialização correspondente ao seu sistema operacional. Ele subirá os containers, aguardará o banco de dados, rodará as *migrations* e limpará os caches automaticamente.
+# 3. Instalar as dependências do Laravel (Composer) usando um contêiner temporário // Foi necessario no quando testei no windowns
+docker run --rm -v $(pwd):/var/www -w /var/www composer install
 
-   **No Linux / macOS:**
-   ```bash
-   chmod +x start.sh
-   ./start.sh
+# 4. Construir as imagens (API, DB, Redis, Queue, Reverb)
+docker compose up -d --build
 
-   **No Windowns**
-   Execute o start.bat ou rode no terminal:
+# 5. Aguardar o banco de dados ligar completamente (Aguarde ~20 segundos)
+# Use este comando para olhar o "coração" do banco de dados. 
+# Quando você ler "ready for connections", aperte Ctrl+C para sair dos logs e continuar.
+docker compose logs db -f
+
+# 7. Execute as Migrations
+docker compose exec app php artisan migrate
+
+# Verificar a saúde de todos os contêineres e assistir a Fila (Queue) trabalhando
+docker compose ps
+docker compose logs queue -f
 
 **Após a execução, os seguintes serviços estarão disponíveis:**
 
