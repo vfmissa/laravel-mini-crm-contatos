@@ -15,8 +15,8 @@
 
 ### Passo a Passo
 
-* 1. Baixar o código do repositório na pasta do projeto
-git clone url-do-seu-repositorio-aqui
+ 1. Baixar o código do repositório na pasta do projeto
+git clone
 
  2. Criar o arquivo de variáveis de ambiente a partir do exemplo
 cp .env.example .env
